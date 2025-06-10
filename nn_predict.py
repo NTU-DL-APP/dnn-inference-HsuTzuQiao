@@ -1,46 +1,52 @@
 import numpy as np
 import json
 
-# === 激活函數 ===
+# === Activation Functions ===
 def relu(x):
     """
-    實現ReLU (Rectified Linear Unit) 激活函數
+    Implement ReLU (Rectified Linear Unit) activation function
     ReLU(x) = max(0, x)
     """
     return np.maximum(0, x)
 
 def softmax(x):
     """
-    實現Softmax激活函數
-    避免數值溢出的穩定版本
+    Implement Softmax activation function
+    Numerically stable version to avoid overflow
     """
-    # 減去最大值以避免數值溢出
-    exp_x = np.exp(x - np.max(x, axis=-1, keepdims=True))
-    return exp_x / np.sum(exp_x, axis=-1, keepdims=True)
+    # Handle both 1D and multi-dimensional inputs
+    if x.ndim == 1:
+        # 1D case: subtract max value to avoid numerical overflow
+        exp_x = np.exp(x - np.max(x))
+        return exp_x / np.sum(exp_x)
+    else:
+        # Multi-dimensional case: apply softmax along the last axis
+        exp_x = np.exp(x - np.max(x, axis=-1, keepdims=True))
+        return exp_x / np.sum(exp_x, axis=-1, keepdims=True)
 
-# === 展平層 ===
+# === Flatten Layer ===
 def flatten(x):
-    """展平輸入張量"""
+    """Flatten input tensor"""
     return x.reshape(x.shape[0], -1)
 
-# === 全連接層 ===
+# === Dense Layer ===
 def dense(x, W, b):
-    """全連接層運算: output = input @ weights + bias"""
+    """Dense layer operation: output = input @ weights + bias"""
     return x @ W + b
 
-# 使用numpy推理TensorFlow h5模型
-# 目前只支援Dense、Flatten、relu、softmax層
+# Forward pass using numpy for TensorFlow h5 model
+# Currently supports Dense, Flatten, relu, softmax layers only
 def nn_forward_h5(model_arch, weights, data):
     """
-    使用模型架構和權重對數據進行前向推理
+    Forward inference using model architecture and weights
     
-    參數:
-        model_arch: 模型架構（從JSON載入）
-        weights: 模型權重（從NPZ載入）
-        data: 輸入資料
+    Args:
+        model_arch: Model architecture (loaded from JSON)
+        weights: Model weights (loaded from NPZ)
+        data: Input data
     
-    回傳:
-        推理結果
+    Returns:
+        Inference results
     """
     x = data
     
@@ -54,27 +60,27 @@ def nn_forward_h5(model_arch, weights, data):
             x = flatten(x)
             
         elif ltype == "Dense":
-            # 載入權重和偏移值
+            # Load weights and bias
             W = weights[wnames[0]]
             b = weights[wnames[1]]
             
-            # 執行線性變換
+            # Apply linear transformation
             x = dense(x, W, b)
             
-            # 應用激活函數
+            # Apply activation function
             activation = cfg.get("activation", "linear")
             if activation == "relu":
                 x = relu(x)
             elif activation == "softmax":
                 x = softmax(x)
-            # 如果是 "linear" 或其他，不應用激活函數
+            # For "linear" or others, no activation is applied
 
     return x
 
-# 主要推理函數
+# Main inference function
 def nn_inference(model_arch, weights, data):
     """
-    神經網路推理主函數
-    您可以用自己的實現替換 nn_forward_h5()
+    Neural network inference main function
+    You can replace nn_forward_h5() with your own implementation
     """
     return nn_forward_h5(model_arch, weights, data)
